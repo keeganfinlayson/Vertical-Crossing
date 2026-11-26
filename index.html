@@ -116,7 +116,7 @@ function pathFoul(t){if(mode==='none'||mode==='basketball')return null;if(mode==
  let f=continuityCache.event;return f&&t>=f.t?{...f,x:world().x,py:verticalY(f.y,dim(beach).h)}:null}
 function snapPoint(p){if(mode==='basketball'){let r=releaseTime;if(p.x>r)p={...p,x:r}}let choices=strokes.flatMap(s=>[s.pts[0],s.pts.at(-1)]);if(mode!=='none')choices.push({x:0,y:startHeight()});if(mode==='basketball')choices.push({x:releaseTime,y:releaseY});let near=choices.find(q=>Math.hypot(p.x-q.x,p.y-q.y)<.025);return near?{...near}:p}
 // All basketball scene coordinates are functions of graph time, including camera travel.
-let releaseY=.68,dragRelease=false;const releaseTime=.6;const shot={gather:.42,release:.62,rimTime:.90,rimHeight:.72,floor:.04,tolerance:.10};
+let releaseY=.85,dragRelease=false;const releaseTime=.6;const shot={gather:.42,release:.62,rimTime:.90,rimHeight:.72,floor:.04,tolerance:.10};
 // Crops isolate complete poses, excluding neighboring frames in the generated sheet.
 const spriteFrames=[[48,19,202,290,191,126],[345,23,198,285,171,154],[667,25,198,284,188,174],[984,29,190,279,176,176],[40,336,189,285,171,174],[353,338,210,283,192,139],[667,337,212,284,193,128],[986,338,191,283,159,124],[109,665,127,278,114,79],[417,690,137,255,123,80],[734,645,126,297,102,17],[1050,630,134,314,124,7],[112,953,156,292,140,5],[422,964,144,280,128,7],[717,998,152,246,135,9],[1044,1008,132,236,119,116]];
 const playerScale=.64/290;
@@ -148,7 +148,7 @@ function basketballHit(t){let a=basketballAnalysis();let f=a.failure;if(!f||t+1e
 function dribbleComplete(){return true}
 function basketballResult(){let p=flightAt(progress);return p?.balls.every(b=>b.scored)?'Basket!':p?'Shot complete — rewind to adjust the launch.':'Draw near the release marker, then press Play.'}
 function madeBasket(t){let p=flightAt(t);return p?.balls.every(b=>b.scored)?p.t:null}
-function basketballExample(){let pts=[];for(let i=0;i<=240;i++){let t=releaseTime*i/240,y;if(t<=.40)y=.34-(.34-.04)*Math.sin(Math.PI*t/.20)**2;else{let u=(t-.40)/.20,v=(.744-releaseY+.5*.28*2.4**2)/2.4;let y0=.34,y1=releaseY,m1=v*10*.20;y=(2*u**3-3*u*u+1)*y0+(-2*u**3+3*u*u)*y1+(u**3-u*u)*m1}if(t>releaseTime-.025){let v=(.740-releaseY+.5*.28*2.4**2)/2.4;y=releaseY+v*10*(t-releaseTime)}pts.push({x:t,y})}return [{kind:'freehand',pts}]}
+function basketballExample(){let pts=[];for(let i=0;i<=240;i++){let t=releaseTime*i/240,y;if(t<=.40)y=.34-(.34-.04)*Math.sin(Math.PI*t/.20)**2;else if(t<releaseTime-.025){let u=(t-.40)/.175,starting=.34,ending=releaseY-.30*.25;y=starting+(ending-starting)*(u*u*(3-2*u))}else y=releaseY+.30*GRAPH_SECONDS*(t-releaseTime);pts.push({x:t,y})}return [{kind:'freehand',pts}]}
 function smoothBallHeight(t){let total=0,weight=0;for(let i=-4;i<=4;i++){let ys=intersections(Math.max(0,Math.min(releaseTime,t+i*.0012))),w=5-Math.abs(i);if(ys.length){total+=ys[0]*w;weight+=w}}return weight?total/weight:.34}
 function rigState(t){let seconds=t*10,jump=t<.51?0:t<=releaseTime?.075*Math.sin((t-.51)/.09*Math.PI/2):.075*Math.max(0,1-(t-releaseTime)/.09),ball=smoothBallHeight(Math.min(t,releaseTime))+physics.radius,follow=t>releaseTime&&t<releaseTime+.065;
  let target=follow?.70:ball,relative=target-jump,reaching=follow||(t<=releaseTime&&relative>=.30&&relative<=.65);return {jump,stride:t<.49?Math.sin(seconds*7):0,hand:target,follow,reaching}}
@@ -159,12 +159,12 @@ function drawPlayer(x,t,a){let state=rigState(t),h=a.h*.90,foot=verticalY(state.
  bc.fillStyle='#287dbb';bc.strokeStyle='#163f63';bc.lineWidth=2;bc.beginPath();bc.moveTo(shoulder.x-.035*h,shoulder.y);bc.lineTo(shoulder.x+.035*h,shoulder.y);bc.lineTo(hip.x+.043*h,hip.y+.015*h);bc.lineTo(hip.x-.044*h,hip.y+.015*h);bc.closePath();bc.fill();bc.stroke();limb([{x:shoulder.x-.021*h,y:shoulder.y+.02*h},{x:hip.x-.025*h,y:hip.y}], '#c7dfeb',.007*h);
  for(let side of [1]){let natural=side<0||!state.reaching,target=natural?{x:shoulder.x+.025*h+state.stride*.015*h,y:hip.y-.025*h}:{x:x+(state.follow?.02:0)*h,y:verticalY(state.hand,dim(beach).h)},arm=joint({...shoulder,x:shoulder.x+side*.012*h},target,.14*h,.13*h,1);limb(arm,'#69452e',.039*h);limb(arm,side<0?'#a66f4e':'#bb835c',.029*h);bc.fillStyle='#c28b65';bc.beginPath();bc.arc(arm[2].x,arm[2].y,.020*h,0,Math.PI*2);bc.fill()}
  bc.fillStyle='#bc845e';bc.beginPath();bc.ellipse(head.x,head.y,.031*h,.041*h,0,0,Math.PI*2);bc.fill();bc.fillStyle='#29323a';bc.beginPath();bc.ellipse(head.x-.007*h,head.y-.022*h,.034*h,.025*h,-.2,Math.PI,2*Math.PI);bc.fill();bc.fillStyle='#29323a';bc.beginPath();bc.arc(head.x+.023*h,head.y-.005*h,.003*h,0,Math.PI*2);bc.fill()}
-const physics={g:.28,dt:1/300,radius:.042,hoopX:1.42,hoopY:.90,rimHalf:.081,boardX:1.545,boardBottom:.78,boardTop:1.09,boardDepth:.20,boardThickness:.018,rimTube:.010,netDepth:.16};
+const physics={g:.28,dt:1/300,radius:.032,hoopX:1.42,hoopY:.90,rimHalf:.12,boardX:1.68,boardBottom:.78,boardTop:1.09,boardDepth:.20,boardThickness:.018,rimTube:.010,netDepth:.16};
 let flightCache=null;
 // The input is a HEIGHT-versus-TIME graph, not a spatial trajectory.
 // Normalized graph time 0..1 corresponds to ten simulation seconds.
 const GRAPH_SECONDS=10;
-const FIXED_HORIZONTAL_SPEED=1.24;
+const FIXED_HORIZONTAL_SPEED=.75;
 const RELEASE_EPS=0.065;
 // Resolve the shot once from the actual drawing, with a forgiving endpoint join.
 // A pen stroke that approaches the release line is enough to launch.
